@@ -1,0 +1,92 @@
+---
+- hosts: localhost
+  collections:
+    - pulp.squeezer
+  gather_facts: false
+  vars_files:
+    - vars/server.yaml
+  module_defaults: &pulp_module_defaults
+    file_publication: &pulp_connection_details
+      pulp_url: "{{ pulp_url }}"
+      username: "{{ pulp_username }}"
+      password: "{{ pulp_password }}"
+    file_remote:
+      <<: *pulp_connection_details
+    file_sync:
+      <<: *pulp_connection_details
+    file_repository:
+      <<: *pulp_connection_details
+    repair:
+      <<: *pulp_connection_details
+  tasks:
+    - name: Make repository absent
+      file_repository:
+        name: test_file_repository
+        state: absent
+    - name: Make repository present
+      file_repository:
+        name: test_file_repository
+        state: present
+    - name: Make file_remote present
+      file_remote:
+        name: test_file_remote
+        url: "{{ pulp_fixtures_url }}/file/PULP_MANIFEST"
+        state: present
+    - name: Sync file_remote into repository
+      file_sync:
+        remote: test_file_remote
+        repository: test_file_repository
+    - name: Clean openapi cache
+      file:
+        path: "{{ lookup('env', 'XDG_CACHE_HOME') | default('~/.cache') }}/squeezer"
+        state: absent
+
+- hosts: tests
+  collections:
+    - pulp.squeezer
+  gather_facts: false
+  vars_files:
+    - vars/server.yaml
+  module_defaults:
+    <<: *pulp_module_defaults
+  tasks:
+    - name: Repair latest version of repository
+      repair:
+        repository: test_file_repository
+      register: result
+    - name: Verify repair latest version of repository
+      assert:
+        that:
+          - result.changed == false
+          - result.corrupted == 0
+          - result.repaired == 0
+    - name: Repair first version of repository
+      repair:
+        repository: test_file_repository
+        version: 1
+      register: result
+    - name: Verify repair first version of repository
+      assert:
+        that:
+          - result.changed == false
+          - result.corrupted == 0
+          - result.repaired == 0
+
+- hosts: localhost
+  collections:
+    - pulp.squeezer
+  gather_facts: false
+  vars_files:
+    - vars/server.yaml
+  module_defaults:
+    <<: *pulp_module_defaults
+  tasks:
+    - name: Make repository absent
+      file_repository:
+        name: test_file_repository
+        state: absent
+    - name: Make file_remote absent
+      file_remote:
+        name: test_file_remote
+        state: absent
+...

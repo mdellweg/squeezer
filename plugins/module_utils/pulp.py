@@ -458,6 +458,38 @@ class PulpFileRepository(PulpEntity):
     _name_plural = "repositories"
 
 
+class PulpFileRepositoryVersion(PulpEntity):
+    _href = "file_repository_version_href"
+    _list_id = "repositories_file_file_versions_list"
+    _read_id = "repositories_file_file_versions_read"
+    _repair_id = "repositories_file_file_versions_repair"
+
+    def repair(self):
+        if not self.module.check_mode:
+            response = self.module.pulp_api.call(
+                self._repair_id, parameters=self.primary_key
+            )
+            task = PulpTask(self.module, {"pulp_href": response["task"]}).wait_for()
+            response = task
+            report = {
+                "corrupted": next(
+                    report["done"]
+                    for report in response["progress_reports"]
+                    if report["code"] == "repair.corrupted"
+                ),
+                "repaired": next(
+                    report["done"]
+                    for report in response["progress_reports"]
+                    if report["code"] == "repair.repaired"
+                ),
+            }
+            if report["repaired"]:
+                self.module.set_changed()
+        else:
+            report = {"corrupted": 0, "repaired": 0}
+        return report
+
+
 # Ansible entities
 
 
