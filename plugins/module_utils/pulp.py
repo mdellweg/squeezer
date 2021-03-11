@@ -12,6 +12,7 @@ __metaclass__ = type
 import re
 import os
 import traceback
+from packaging.version import parse as parse_version
 from time import sleep
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback
@@ -20,6 +21,14 @@ from ansible_collections.pulp.squeezer.plugins.module_utils.openapi import OpenA
 
 PAGE_LIMIT = 20
 CONTENT_CHUNK_SIZE = 512 * 1024  # 1/2 MB
+LAGACY_COMPONENT_NAMES = {
+    "ansible": "pulp_ansible",
+    "container": "pulp_container",
+    "core": "pulpcore",
+    "deb": "pulp_deb",
+    "file": "pulp_file",
+    "rpm": "pulp_rpm",
+}
 
 
 class SqueezerException(Exception):
@@ -91,6 +100,27 @@ class PulpAnsibleModule(AnsibleModule):
 
     def set_result(self, key, value):
         self._results[key] = value
+
+    @property
+    def component_versions(self):
+        result = self.pulp_api.api_spec.get("info", {}).get("x-pulp-app-versions", {})
+        return result
+
+    def has_plugin(self, name, min_version, max_version):
+        if not self.component_versions:
+            # Prior to 3.9 we do not have this information
+            # assume yes if no version constraint is specified
+            return (min_version is None) and (max_version is None)
+        version = self.component_versions.get(name) or self.component_versions.get(LEGACY_COMPONENT_NAMES.get(name, ""))
+        if version is None:
+            return False
+        if min_version is not None:
+            if parse_version(version) < parse_version(min_version):
+                return False
+        if max_version is not None:
+            if parse_version(version) >= parse_version(max_version):
+                return False
+        return True
 
 
 class PulpEntityAnsibleModule(PulpAnsibleModule):
