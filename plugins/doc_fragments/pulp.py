@@ -64,3 +64,51 @@ options:
     choices:
       - present
 """
+
+    REMOTE = r"""
+options:
+  url:
+    description:
+      - URL to the upstream repository
+    type: str
+  download_concurrency:
+    description:
+      - How many downloads should be attempted in parallel
+    type: int
+  remote_username:
+    description:
+      - The username to authenticate with the remote repository.
+    type: str
+  remote_password:
+    description:
+      - The password to authenticate with the remote repository.
+    type: str
+  ca_cert:
+    description:
+      - Certificate autority to identify the remote repository.
+    type: str
+  client_cert:
+    description:
+      - Client certificate to authenticate with the remote repository.
+    type: str
+  client_key:
+    description:
+      - Client key to authenticate with the remote repository.
+    type: str
+  tls_validation:
+    description:
+      - If True, TLS peer validation must be performed on remote synchronization.
+    type: bool
+  proxy_url:
+    description:
+      - The proxy URL. Format C(scheme://host:port) .
+    type: str
+  proxy_username:
+    description:
+      - The username to authenticate with the proxy.
+    type: str
+  proxy_password:
+    description:
+      - The password to authenticate with the proxy.
+    type: str
+"""
