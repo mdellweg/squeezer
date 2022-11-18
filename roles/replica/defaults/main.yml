@@ -1,0 +1,8 @@
+---
+pulp_squeezer_replica_upstream_url: http://localhost:5001
+pulp_squeezer_replica_upstream_username: admin
+pulp_squeezer_replica_upstream_password: password
+pulp_squeezer_replica_downstream_url: http://localhost:5001
+pulp_squeezer_replica_downstream_username: admin
+pulp_squeezer_replica_downstream_password: password
+...

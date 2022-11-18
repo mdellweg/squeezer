@@ -1,0 +1,27 @@
+---
+- name: Upstream status
+  pulp.squeezer.status: &upstream_credentials
+    pulp_url: "{{ pulp_squeezer_replica_upstream_url }}"
+    username: "{{ pulp_squeezer_replica_upstream_username }}"
+    password: "{{ pulp_squeezer_replica_upstream_password }}"
+- name: Downstream status
+  pulp.squeezer.status: &downstream_credentials
+    pulp_url: "{{ pulp_squeezer_replica_downstream_url }}"
+    username: "{{ pulp_squeezer_replica_downstream_username }}"
+    password: "{{ pulp_squeezer_replica_downstream_password }}"
+- name: Gather Upstream Distribution Information
+  pulp.squeezer.file_distribution:
+    <<: *upstream_credentials
+  register: distribution_result
+- debug:
+    var: distribution_result
+
+# TODO Remove everything no longer upstream
+
+- name: "Replicate Distribution Downstream"
+  include_tasks: replicate_distribution.yml
+  loop: "{{ distribution_result.distributions }}"
+  loop_control:
+    label: "{{ distribution.name }}"
+    loop_var: distribution
+...

@@ -1,0 +1,44 @@
+---
+- name: Dummy task
+  pulp.squeezer.status: &downstream_credentials
+    pulp_url: "{{ pulp_squeezer_replica_downstream_url }}"
+    username: "{{ pulp_squeezer_replica_downstream_username }}"
+    password: "{{ pulp_squeezer_replica_downstream_password }}"
+  when: false
+
+- name: "Create Downstream Remote"
+  pulp.squeezer.file_remote:
+    <<: *downstream_credentials
+    name: "{{ distribution.name }}__remote"
+    url: "{{ distribution.base_url }}/PULP_MANIFEST"
+    state: present
+
+- name: "Create Downstream Repository"
+  pulp.squeezer.file_repository:
+    <<: *downstream_credentials
+    name: "{{ distribution.name }}__repository"
+    state: present
+
+- name: "Sync Downstream Repository"
+  pulp.squeezer.file_sync:
+    <<: *downstream_credentials
+    remote: "{{ distribution.name }}__remote"
+    repository: "{{ distribution.name }}__repository"
+  register: sync_result
+
+- name: "Publish Downstream Repository"
+  pulp.squeezer.file_publication:
+    <<: *downstream_credentials
+    repository: "{{ distribution.name }}__repository"
+    # version: "{{ sync_result.repository_version.pulp_href | extract_number }}"
+    state: present
+  register: publish_result
+
+- name: "Create Downstream Distribution"
+  pulp.squeezer.file_distribution:
+    <<: *downstream_credentials
+    name: "{{ distribution.name }}"
+    base_path: "{{ distribution.base_path }}"
+    publication: "{{ publish_result.publication.pulp_href }}"
+    state: present
+...

@@ -1,0 +1,44 @@
+---
+- hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/server.yaml
+  module_defaults: &pulp_module_defaults
+    pulp.squeezer.status: &pulp_connection_details
+      pulp_url: "{{ pulp_url }}"
+      username: "{{ pulp_username }}"
+      password: "{{ pulp_password }}"
+      validate_certs: "{{ pulp_validate_certs | default(true) }}"
+    pulp.squeezer.file_distribution:
+      <<: *pulp_connection_details
+  tasks:
+    - name: Clean openapi cache
+      file:
+        path: "{{ lookup('env', 'XDG_CACHE_HOME') | default('~/.cache') }}/squeezer"
+        state: absent
+    - name: Create seed distribution
+      pulp.squeezer.file_distribution:
+        name: test_replica_upstream_distribution
+        base_path: test/replica/upstream
+        state: present
+
+- hosts: tests
+  gather_facts: false
+  vars_files:
+    - vars/server.yaml
+  roles:
+    - pulp.squeezer.replica
+
+- hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/server.yaml
+  module_defaults:
+    <<: *pulp_module_defaults
+  tasks:
+    - name: Remove seed distribution
+      pulp.squeezer.file_distribution:
+        name: test_replica_upstream_distribution
+        state: absent
+...
+
